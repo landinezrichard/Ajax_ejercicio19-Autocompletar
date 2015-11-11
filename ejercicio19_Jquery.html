@@ -1,0 +1,60 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="es" lang="es">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Ejercicio 19 - Autocompletar Jquery</title>
+
+<style type="text/css" media="screen">
+body, html { padding:0; margin:0; }
+
+#sugerencias {width:200px; border:1px solid black; display:none; margin-left: 83px;}
+#sugerencias ul {list-style: none; margin: 0; padding: 0; font-size:.85em;}
+#sugerencias ul li {padding: .2em; border-bottom: 1px solid silver;}
+.seleccionado {font-weight:bold; background-color: #FFFF00;}
+</style>
+
+<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui.css">
+<script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+<script src="http://code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+
+<script type="text/javascript">
+		
+	/*La respuesta del servidor es:
+	{
+	"a": ["Ababuj", "Abades", "Abadía", "Abadín", "Abadiño", "Abáigar", "Abajas", "Abaltzisketa", "Abánades", "Abanilla", "Abanto y Ciérvana-Abanto Zierbena", "Abanto", "Abarán", "Abarca de Campos", "Abárzuza", "Abaurregaina/Abaurrea Alta", "Abaurrepea/Abaurrea Baja", "Abegondo", "Abejar", "Abejuela", "Abella de la Conca"],
+	 
+	"al": ["Alacón", "Aladrén", "Alaejos", "Alagón", "Alaior", "Alájar", "Alajeró", "Alameda de Gardón (La)", "Alameda de la Sagra", "Alameda del Valle", "Alameda", "Alamedilla (La)", "Alamedilla", "Alamillo", "Alaminos", "Alamús (Els)", "Alange", "Alanís", "Alaquàs", "Alar del Rey", "Alaraz"],
+	...
+	}
+	*/
+		
+	function todo(){
+		$("#municipio").autocomplete({			
+		  source: "http://vacanwallpapers.byethost6.com/autocompletaMunicipiosJquery.php"
+		});
+		
+	}
+ 
+	$(document).on('ready', function() {		
+		//obtener el cuadro de texto
+		var texto_imput=$("#municipio");		
+		//pedir info al server cada vez que se escribe algo		
+		texto_imput.on('keyup',todo);	
+		//darle foco
+		texto_imput.focus();
+		
+	});
+
+</script>
+
+</head>
+
+<body>
+	<form>
+		Digite el Municipio(España):
+		<input type="text" id="municipio"/>
+	</form>
+</body>
+
+</html>

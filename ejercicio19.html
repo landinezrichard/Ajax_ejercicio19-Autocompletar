@@ -1,0 +1,249 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="es" lang="es">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Ejercicio 19 - Autocompletar</title>
+
+<style type="text/css" media="screen">
+body, html { padding:0; margin:0; }
+
+#sugerencias {width:200px; border:1px solid black; display:none; margin-left: 83px;}
+#sugerencias ul {list-style: none; margin: 0; padding: 0; font-size:.85em;}
+#sugerencias ul li {padding: .2em; border-bottom: 1px solid silver;}
+.seleccionado {font-weight:bold; background-color: #FFFF00;}
+</style>
+
+<script type="text/javascript">
+
+//este nunca me funciono
+
+	//guarda las sugerencias en el lado del cliente
+	var cacheSugerencias=new Array();
+	//el texto que escribe el usuario
+	var texto="";
+	
+	var elementoSeleccionado=-1;
+	//las sugerencias que se muestran
+	var sugerencias=null;
+	
+	
+	var net = new Object();
+ 
+	net.READY_STATE_UNINITIALIZED=0; 
+	net.READY_STATE_LOADING=1; 
+	net.READY_STATE_LOADED=2; 
+	net.READY_STATE_INTERACTIVE=3; 
+	net.READY_STATE_COMPLETE=4; 
+	 
+	// Constructor
+	net.CargadorContenidos = function(url, funcion, funcionError, metodo, parametros, contentType, sincrono) {
+	  this.url = url;
+	  this.req = null;
+	  this.onload = funcion;
+	  this.onerror = (funcionError) ? funcionError : this.defaultError;
+	  this.cargaContenidoXML(url, metodo, parametros, contentType, sincrono);
+	}
+	 
+	net.CargadorContenidos.prototype = {
+	  cargaContenidoXML: function(url, metodo, parametros, contentType, sincrono) {
+		if(window.XMLHttpRequest) {
+		  this.req = new XMLHttpRequest();
+		}
+		else if(window.ActiveXObject) {
+		  this.req = new ActiveXObject("Microsoft.XMLHTTP");
+		}
+	 
+		if(this.req) {
+		  try {
+			var loader = this;
+			this.req.onreadystatechange = function() {
+			  loader.onReadyState.call(loader);
+			}
+			this.req.open(metodo, url, (sincrono===false)?false:true);
+			if(contentType) {
+			  this.req.setRequestHeader("Content-Type", contentType);
+			}
+			this.req.send(parametros);
+			} catch(err) {
+			  this.onerror.call(this);
+			}
+		}
+	  },
+	 
+	  onReadyState: function() {
+		var req = this.req; 
+		var ready = req.readyState; 
+		if(ready == net.READY_STATE_COMPLETE) { 
+		  var httpStatus = req.status; 
+		  if(httpStatus == 200 || httpStatus == 0) { 
+			this.onload.call(this);
+		  }
+		  else {
+			this.onerror.call(this);
+		  }
+		}
+	  },
+	 
+	  defaultError: function() {
+		alert("Se ha producido un error al obtener los datos"
+		  + "\n\nreadyState:" + this.req.readyState
+		  + "\nstatus: " + this.req.status
+		  + "\nheaders: " + this.req.getAllResponseHeaders());
+	  }
+	}		
+		
+	function cargarServidor(funcion,parametros,asincrono){
+		var url="http://vacanwallpapers.byethost6.com/autocompletaMunicipios.php"; 
+		var funcion=funcion;
+		var funcionError=null;
+		var metodo="POST";
+		var parametros=parametros+"&nocache="+Math.random();
+		var contentType="application/x-www-form-urlencoded";
+		var asincrono=asincrono;
+		var cargador = new net.CargadorContenidos(url,funcion,funcionError,metodo,parametros,contentType,asincrono);	
+		
+	}	
+	
+	function pedirSugerencia(valor){
+		var valor=encodeURIComponent(valor);
+		//pide las sugerencias al servidor
+		cargarServidor(guardaCache,("municipio="+valor),true);	
+	}
+	
+	function guardaCache(){
+		//Se Recibe la respuesta del servidor con:		
+		//this.req.responseXML  -->si es XML
+		//this.req.responseText  -->si es Texto
+		var respuesta_json=this.req.responseText;
+		sugerencias=eval("("+respuesta_json+")");
+		//si no hay sugerencias
+		if(sugerencias.length==0){
+			sinResultados();
+        }
+        else{
+			//Guarda en el array sugerencias[], en el cliente, las sugerencias descargadas del servidor
+			cacheSugerencias[texto]=sugerencias;
+			actualizaSugerencias();
+        }	
+	}
+	
+	function autocompleta(elEvento){
+		//se obtiene la tecla que presiono el usuario
+		var tecla=obtenerTecla(elEvento);
+		
+		if(tecla==40){ // Flecha Abajo
+			if(elementoSeleccionado+1 < sugerencias.length){
+				elementoSeleccionado++;
+			}
+			mostrarSugerencias();
+		}else if(tecla==38){ // Flecha Arriba
+				if(elementoSeleccionado > 0){
+					elementoSeleccionado--;
+				}
+				mostrarSugerencias();
+		}else if(tecla==13){ // ENTER o Intro
+				seleccionarOpcion();
+		}else {			
+		
+			// se obtiene lo que escribio el usuario
+			texto=document.getElementById("municipio").value;
+			// Si es la tecla de borrado y el texto es vacío, borra las sugerencias
+			if(tecla==8 && texto==""){
+				borrarSugerencias();
+				return;
+			}
+		
+				
+			//si en el array cacheSugerencias[], no existen sugerencias para el texto del usuario las pide al servidor
+			if(cacheSugerencias[texto] == null) {
+				pedirSugerencia(texto);
+			}else{		
+				//si las sugerencias para el texto ya se encuentran en el array del cliente
+				sugerencias=cacheSugerencias[texto];
+				actualizaSugerencias();		
+			}
+		}	
+	}
+	
+	function sinResultados() {
+		var div_sugerencia=document.getElementById("sugerencias");
+		div_sugerencia.innerHTML="No existen municipios que empiecen con ese texto";
+		div_sugerencia.style.display="block";
+	}
+	
+	function actualizaSugerencias() {
+		elementoSeleccionado=-1;
+		mostrarSugerencias();
+	}
+	
+	function mostrarSugerencias(){		
+		var div_sugerencia=document.getElementById("sugerencias");
+		div_sugerencia.innerHTML=sugerencias.formateaLista();
+		div_sugerencia.style.display="block";
+	}
+	
+	function borrarSugerencias() {
+		var div_sugerencia=document.getElementById("sugerencias");
+		div_sugerencia.innerHTML="";
+		div_sugerencia.style.display="none";
+	}
+	
+	function seleccionarOpcion(){
+		if(sugerencias[elementoSeleccionado]){
+			document.getElementById("municipio").value=sugerencias[elementoSeleccionado];
+			borrarSugerencias();
+		}
+	}
+	
+	function obtenerTecla(elEvento){
+		var evento=elEvento || window.event;
+		var codigoTecla=evento.keyCode;
+		
+		return codigoTecla;
+	}
+	
+	//para darle formato de lista a la respuesta, se crea una funcion nueva en el objeto array
+	Array.prototype.formateaLista=function(){
+		var codigoHtml= "";
+
+		codigoHtml="<ul>";
+		for(var i=0;i<this.length;i++){
+			if(i == elementoSeleccionado){
+				codigoHtml+="<li class=\"seleccionado\">"+this[i]+"</li>";
+			}
+			else{
+			  codigoHtml+="<li>"+this[i]+"</li>";
+			}
+		}
+		codigoHtml+="</ul>";
+
+		return codigoHtml;
+	};
+ 
+	window.onload = function() {
+		//crear el div donde se muestran las sugerencias
+		var div_sugerencia=document.createElement("div");
+		div_sugerencia.id="sugerencias";
+		document.body.appendChild(div_sugerencia);
+		//obtener el cuadro de texto
+		var texto_imput=document.getElementById("municipio");		
+		//pedir info al server cada vez que se escribe algo
+		texto_imput.onkeyup=autocompleta;	
+		//darle foco
+		texto_imput.focus();
+		
+	}
+
+</script>
+
+</head>
+
+<body>
+	<form>
+		Digite el Municipio(España):
+		<input type="text" id="municipio"/>
+	</form>
+</body>
+
+</html>
